@@ -8,6 +8,7 @@ const createElement: (
   props: object,
   ...children: DICE_ELEMENT[]
 ) => DICE_ELEMENT = (type, props, ...children) => {
+  console.log({type, props, children})
   children=normalizeArray(children);
   return {
     type,

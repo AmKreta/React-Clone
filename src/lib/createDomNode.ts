@@ -3,6 +3,7 @@ import { DICE_ELEMENT } from "./types/types";
 const createDomNode: (element: DICE_ELEMENT) => HTMLElement | Text = (
   element
 ) => {
+  if(typeof(element.type)==='function') return null;
   let el;
   if (element.type === "TEXT_ELEMENT") {
     el = document.createTextNode("");

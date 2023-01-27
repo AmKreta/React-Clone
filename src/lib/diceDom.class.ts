@@ -55,19 +55,22 @@ class DiceDom {
 
   comitWork=(fiber:FIBER | null)=>{
     if(!fiber) return;
-    if(fiber.effectTag==='PLACEMENT'){
-      fiber.parent.dom.appendChild(fiber.dom);
-      this.deleteDom(fiber.alternate);
+    const domfiberDomParent=this.getDomFiberParent(fiber.parent);
+    if(fiber.effectTag==='PLACEMENT' && fiber.dom){
+      domfiberDomParent.dom.appendChild(fiber.dom);
+      this.deleteDom(fiber.alternate, domfiberDomParent);
     }
-    else if(fiber.effectTag==='UPDATE') this.updateDom(fiber);
-    else if(fiber.effectTag==='DELETION') this.deleteDom(fiber);
+    if(fiber.effectTag==='UPDATE') this.updateDom(fiber);
+    if(fiber.effectTag==='DELETION') this.deleteDom(fiber, domfiberDomParent);
     this.comitWork(fiber.child);
     this.comitWork(fiber.sibling);
   }
 
   reconcileChildren(fiber:FIBER){
     let oldFiber=fiber.alternate?.child;
-    let children=fiber.props.children;
+    let children=fiber.type instanceof Function
+      ?[fiber.type(fiber.props)]
+      :fiber.props.children;
     let prevFiber:FIBER=null;
     for(let i=0;i<children.length || oldFiber;i++, oldFiber=oldFiber?.sibling){
       let child=children[i];
@@ -101,7 +104,6 @@ class DiceDom {
   }
 
   updateDom(fiber:FIBER){
-    const dom=fiber.dom;
     const oldProps=fiber.alternate.props;
     const newProps=fiber.props;
 
@@ -126,17 +128,22 @@ class DiceDom {
     }
   }
 
-  deleteDom(fiber:FIBER | null){
-    if(!fiber) return;
+  deleteDom(fiber:FIBER, domfiberParent:FIBER){
+    if(!fiber?.dom) return;
     // remove from dom and remove event listeners
     for(let propName in fiber.props){
       if(propName==='children') return;
       if(propName.startsWith('on') && (fiber.props[propName] instanceof Function)){
         const eventName=propName.slice(2).toLowerCase();
-        fiber.dom.addEventListener?.(eventName, fiber.props[propName]);
+        fiber.dom.removeEventListener?.(eventName, fiber.props[propName]);
       }
     }
-    fiber.parent.dom?.removeChild(fiber.dom);
+    domfiberParent.dom?.removeChild(fiber.dom);
+  }
+
+  getDomFiberParent(fiber:FIBER | null){
+    while(!fiber.dom) fiber=fiber.parent;
+    return fiber;
   }
 }
 
